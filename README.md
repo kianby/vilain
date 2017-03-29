@@ -1,15 +1,9 @@
 # vilain
-
-
 Mimic fail2ban with pf for OpenBSD.
 
 Inspired from http://www.vincentdelft.be/post/post_20161106
 
-This repository is just for work.
-See here for last vilain "stable" version : http://git.yeuxdelibad.net/vilain/  
-
-
-In pf.conf, add : 
+In pf.conf, add according to your configuration : 
 
     table <vilain_bruteforce> persist
     block quick from <vilain_bruteforce> 
@@ -23,4 +17,14 @@ To see banned IP :
     pfctl -t vilain_bruteforce -T show
 
 
+To start vilain at boot, add this in ``/etc/rc.local``
 
+```
+/usr/bin/tmux new -s vilain -d /usr/local/bin/vilain
+```
+
+Then, to attach to the tmux session, run : 
+
+```
+tmux a -t vilain
+```

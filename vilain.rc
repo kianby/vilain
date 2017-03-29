@@ -1,0 +1,13 @@
+#!/bin/sh
+#
+# $OpenBSD: vilain.rc,v 1.0 2017/03/28 17:58:46 Thuban$
+
+daemon="/usr/local/bin/vilain"
+
+. /etc/rc.d/rc.subr
+
+pexp="python3.*vilain\.py"
+rc_reload=NO
+
+rc_cmd $1
+

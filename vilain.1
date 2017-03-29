@@ -1,0 +1,41 @@
+.
+.TH vilain 28 "March 2017" "" "Fail2ban-like for OpenBSD"
+.SH NAME
+vilain \- fail2ban-like for OpenBSD
+.
+.SH SYNOPSIS
+.RS
+To use vilain : 
+  1. Copy configuration file in /etc/vilain.conf and configure according to your needs.
+  2. Configure pf according to the example below
+  3. start vilain via rcctl
+You only need python >= 3.5 to use it.
+.RE
+
+.SH DESCRIPTION
+.RS
+In pf.conf, add according to your configuration : 
+
+    table <vilain_bruteforce> persist
+    block quick from <vilain_bruteforce> 
+
+You might want to add a cron task to remove old banned IP. As example, to ban for one day max : 
+
+    pfctl -t vilain_bruteforce -T expire 86400
+
+To see banned IP : 
+
+    pfctl -t vilain_bruteforce -T show
+.RE
+
+.SH LOGS
+.RS
+Watch vilain logs in /var/log/daemon.
+.RE
+
+
+.SH BUGS
+.RS
+Please let me know : <thuban@yeuxdelibad.net>
+.RE
+
