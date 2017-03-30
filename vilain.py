@@ -29,7 +29,6 @@ import logging
 import subprocess
 import asyncio
 import time
-from multiprocessing import Process
 
 configfile = "/etc/vilain.conf"
 version = "0.3"
@@ -182,8 +181,7 @@ class Vilain():
 def main():
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     v = Vilain()
-    p = Process(target=v.start())
-    p.start()
+    v.start()
     return 0
 
 if __name__ == '__main__':
