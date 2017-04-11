@@ -1,8 +1,10 @@
 #!/bin/sh
+# script to launch vilain with the latest python3 version avaiable
+
 PYTHONVERSION=$(ls -l /usr/local/bin/python3.* |grep -Eo "3\.[0-9]" |tail -n1)
 PYTHON="/usr/local/bin/python$PYTHONVERSION"
 if [ -x $PYTHON ]; then
-	$PYTHON /usr/local/sbin/vilain.py >> /var/log/daemon 2>&1 &
+	$PYTHON /usr/local/sbin/vilain.py >/dev/null 2>&1 &
 else
 	echo "Error : no python3 executable found"
 fi

@@ -1,3 +1,1 @@
-- Improve logs. Show who comes from where if possible. (work on regex needed)
 - Add more regex
-- Add custom command instead of pf call. Or not, another script watching logs seems better.

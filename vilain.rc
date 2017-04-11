@@ -6,8 +6,9 @@ daemon="/usr/local/bin/vilain"
 
 . /etc/rc.d/rc.subr
 
-pexp="python3.*vilain\.py"
+pexp=".*vilain\.py"
 rc_reload=NO
 
 rc_cmd $1
+
 
