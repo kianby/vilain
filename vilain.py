@@ -97,6 +97,7 @@ class Vilain():
             asyncio.ensure_future(self.check_logs(entry['logfile'], entry['maxtries'], entry['regex'], entry['name']))
 
         asyncio.ensure_future(self.ban_ips())
+        asyncio.ensure_future(self.clean_ips())
 
     def load_bad_ips(self):
         try:
@@ -117,6 +118,7 @@ class Vilain():
             self.loop.close()
         finally:
             self.loop.close()
+
 
     async def check_logs(self, logfile, maxtries, regex, reason):
         """
@@ -157,8 +159,6 @@ class Vilain():
     async def ban_ips(self):
         """
         record time when this IP has been seen in ip_seen_at = { ip:{'time':<time>,'count':<counter} }
-
-        check old ip in ip_seen_at : remove older than watch_while
         """
         logger.info('ban_ips sarted with sleeptime={}'.format(self.sleeptime))
         while True:
@@ -176,6 +176,16 @@ class Vilain():
                 ret = subprocess.call(["pfctl", "-t", self.vilain_table, "-T", "add", ip])
                 logger.info("Blacklisting {}, return code:{}".format(ip, ret))
                 self.ip_seen_at.pop(ip)
+            #for debugging, this line allow us to see if the script run until here
+            logger.debug('ban_ips end:{}'.format(self.ip_seen_at))
+
+    async def clean_ips(self):
+        """
+        check old ip in ip_seen_at : remove older than watch_while
+        """
+        logger.info('clean_ips sarted with sleeptime={}'.format(self.sleeptime))
+        while True:
+            await asyncio.sleep(self.sleeptime)
             to_remove = []
             for recorded_ip, data in self.ip_seen_at.items():
                 if time.time() - data['time'] >= self.watch_while:
@@ -186,6 +196,10 @@ class Vilain():
                 self.ip_seen_at.pop(ip)
             #for debugging, this line allow us to see if the script run until here
             logger.debug('ban_ips end:{}'.format(self.ip_seen_at))
+
+
+
+
 
 
 
