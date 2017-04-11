@@ -4,12 +4,12 @@
 
 """
 Author :      thuban <thuban@yeuxdelibad.net>  
+              Vincent <vincent.delft@gmail.com>
 Licence :     MIT
 Require : python >= 3.5
 
 Description : Mimic fail2ban with pf for OpenBSD.
               Inspired from http://www.vincentdelft.be/post/post_20161106
-              with improvements of vincendelft
 
               In pf.conf, add : 
                     table <vilain_bruteforce> persist
@@ -28,8 +28,8 @@ import subprocess
 import asyncio
 import time
 
-configfile = "/etc/vilain.conf"
-version = "0.4"
+CONFIGFILE = "/etc/vilain.conf"
+VERSION = "0.5"
 vilain_table = "vilain_bruteforce"
 logfile = "/var/log/daemon"
 
@@ -43,25 +43,24 @@ logging.basicConfig(filename=logfile,
                     format='%(asctime)s %(module)s:%(funcName)s:%(message)s',
                     datefmt='%H:%M:%S')
 logger.setLevel(logging.INFO)
-ch = logging.StreamHandler(sys.stdout)
-logger.addHandler(ch)
 
 # functions
 def readconfig():
-    if not os.path.isfile(configfile):
+    logger.info('Read config file: {}'.format(CONFIGFILE))
+    if not os.path.isfile(CONFIGFILE):
         logging.error("Can't read config file, exiting...")
         sys.exit(1)
 
     config = configparser.ConfigParser()
-    config.read(configfile)
+    config.read(CONFIGFILE)
     return(config)
 
 def load_config():
     c = readconfig()
     d = c.defaults()
     watch_while = int(d['watch_while'])
-    default_maxtries = int(d['maxtries'])
     vilain_table = d['vilain_table']
+    default_maxtries = int(d['maxtries'])
     sleeptime = float(d['sleeptime'])
     ignore_ips = []
 
@@ -86,6 +85,7 @@ def load_sections():
 
 class Vilain():
     def __init__(self):
+        logger.info('Start vilain version {}'.format(VERSION))
         self.loop = asyncio.get_event_loop()
         self.watch_while, self.default_maxtries, self.vilain_table, self.ignore_ips, self.sleeptime = load_config()
         self.ip_seen_at = {}
@@ -103,10 +103,11 @@ class Vilain():
         try:
             ret = subprocess.check_output(["pfctl", "-t", self.vilain_table, "-T", "show"])
         except:
+            logger.warning("Failed to run pfctl -t {} -T show".format(self.vilain_table))
             ret = ""
         for res in ret.split():
             ip = res.strip().decode('utf-8')
-            logger.debug('Add existing banned IPs in your pf table: {}'.format(ip))
+            logger.info('Add existing banned IPs in your pf table: {}'.format(ip))
             #we assign the counter to 1, but for sure we don't know the real value 
             self.ip_seen_at[ip]={'time':time.time(),'count':1}
 
@@ -140,35 +141,35 @@ class Vilain():
                     mtime = stat.st_mtime
                     with open(logfile, "rb") as f:
                         f.seek(size)
-                        lines = f.readlines()
-                        ul = [ u.decode() for u in lines ]
-                        line = "".join(ul).strip()
+                        for bline in f.readlines():
+                            line = bline.decode().strip()
+                            ret = RE.match(line)
+                            logger.debug('line:{}'.format(line))
+                            if ret:
+                                bad_ip = ret.groups()[0]
+                                if bad_ip not in self.ignore_ips :
+                                    logger.info('line match {} the {} rule'.format(bad_ip, reason))
+                                    await self.bad_ip_queue.put({'ip' : bad_ip, 'maxtries': maxtries, 'reason' : reason})
+                                    logger.debug('queue size: {}'.format(self.bad_ip_queue.qsize()))
+                                else:
+                                    logger.info('line match {}. But IP in ingore list'.format(bad_ip))
 
-                        ret = RE.match(line)
-                        logger.debug('line:{}'.format(line))
-                        if ret:
-                            bad_ip = ret.groups()[0]
-                            if bad_ip not in self.ignore_ips :
-                                logger.info('line match {} because of rule : {}'.format(bad_ip, reason))
-                                await self.bad_ip_queue.put({'ip' : bad_ip, 'reason' : reason})
-                                logger.debug('queue size: {}'.format(self.bad_ip_queue.qsize()))
-                            else:
-                                logger.info('line match {}. But IP in ignore list'.format(bad_ip))
                     size = stat.st_size
 
     async def ban_ips(self):
         """
         record time when this IP has been seen in ip_seen_at = { ip:{'time':<time>,'count':<counter} }
+        and ban with pf
         """
         logger.info('ban_ips sarted with sleeptime={}'.format(self.sleeptime))
         while True:
-            await asyncio.sleep(self.sleeptime)
+            # await asyncio.sleep(self.sleeptime)
             ip_item = await self.bad_ip_queue.get()
             logger.debug('ban_ips awake')
             ip = ip_item['ip']
             reason = ip_item['reason']
             maxtries = ip_item['maxtries']
-            self.ip_seen_at.setdefault(ip,{'time':time.time(),'count':0})
+            self.ip_seen_at.setdefault(ip, {'time':time.time(),'count':0})
             self.ip_seen_at[ip]['count'] += 1
             n_ip = self.ip_seen_at[ip]['count']
             logger.info("{} detected, reason {}, count: {}, maxtries: {}".format(ip, reason, n_ip, maxtries))
@@ -207,7 +208,26 @@ def main():
     return 0
 
 if __name__ == '__main__':
-	main()
+    import argparse
+    parser = argparse.ArgumentParser(description="Vilain mimic fail2ban with pf for OpenBSD")
+    parser.add_argument('--debug','-d', action="store_true", help="run in debug mode")
+    parser.add_argument('--conf','-c', nargs="?", help="location of the config file")
+    parser.add_argument('--version','-v', action="store_true", help="Show the version and exit")
+    args = parser.parse_args()
+    if args.debug:
+        print("run in debug")
+        logger.setLevel(logging.DEBUG)
+        ch = logging.StreamHandler(sys.stdout)
+        logger.addHandler(ch)
+    if args.conf:
+        CONFIGFILE = args.conf
+    if args.version:
+        print("Version: ", VERSION)
+        sys.exit(0)
+    main()
+
+
+# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 
 
 # vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
