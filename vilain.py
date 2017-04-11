@@ -195,16 +195,7 @@ class Vilain():
             for ip in to_remove:
                 self.ip_seen_at.pop(ip)
             #for debugging, this line allow us to see if the script run until here
-            logger.debug('ban_ips end:{}'.format(self.ip_seen_at))
-
-
-
-
-
-
-
-
-
+            logger.debug('clean_ips end:{}'.format(self.ip_seen_at))
 
 
 
