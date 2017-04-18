@@ -31,7 +31,7 @@ import time
 CONFIGFILE = "/etc/vilain.conf"
 VERSION = "0.5"
 vilain_table = "vilain_bruteforce"
-logfile = "/var/log/daemon"
+LOGFILE = "/var/log/daemon"
 
 if os.geteuid() != 0:
     print("Only root can use this tool")
@@ -39,7 +39,7 @@ if os.geteuid() != 0:
 
 # Configure logging
 logger = logging.getLogger(__name__)
-logging.basicConfig(filename=logfile,
+logging.basicConfig(filename=LOGFILE,
                     format='%(asctime)s %(module)s:%(funcName)s:%(message)s',
                     datefmt='%H:%M:%S')
 logger.setLevel(logging.INFO)
@@ -59,7 +59,7 @@ def load_config():
     c = readconfig()
     d = c.defaults()
     watch_while = int(d['watch_while'])
-    vilain_table = d['vilain_table']
+    VILAIN_TABLE = d['vilain_table']
     default_maxtries = int(d['maxtries'])
     sleeptime = float(d['sleeptime'])
     ignore_ips = []
@@ -72,16 +72,15 @@ def load_sections():
     c = readconfig()
     for s in c.sections():
         if c.has_option(s,'logfile'):
-            logfile = c.get(s,'logfile')
+            LOGFILE = c.get(s,'logfile')
             regex = c.get(s,'regex')
             #we take the default value of maxtries
             maxtries = c.defaults()['maxtries']
             if c.has_option(s,'maxtries'):
                 #if we have a maxtries defined in the section, we overwrite the default
                 maxtries = int(c.get(s,'maxtries'))
-            d = {'name' : s, 'logfile':logfile, 'regex':regex, 'maxtries': maxtries}
+            d = {'name' : s, 'logfile':LOGFILE, 'regex':regex, 'maxtries': maxtries}
             yield d
-
 
 class Vilain():
     def __init__(self):
@@ -93,7 +92,7 @@ class Vilain():
         self.bad_ip_queue = asyncio.Queue(loop=self.loop)
 
         for entry in load_sections():
-            logger.info("Start vilain for {}".format(entry['name']))
+            logger.info("Start vilain for {}".format(entry))
             asyncio.ensure_future(self.check_logs(entry['logfile'], entry['maxtries'], entry['regex'], entry['name']))
 
         asyncio.ensure_future(self.ban_ips())
@@ -114,12 +113,12 @@ class Vilain():
 
     def start(self):
         try:
+            logger.info('Run forever loop')
             self.loop.run_forever()
         except KeyboardInterrupt:
             self.loop.close()
         finally:
             self.loop.close()
-
 
     async def check_logs(self, logfile, maxtries, regex, reason):
         """
@@ -131,16 +130,21 @@ class Vilain():
             # Watch the file for changes
             stat = os.stat(logfile)
             size = stat.st_size
+            inode = stat.st_ino
             mtime = stat.st_mtime
             RE = re.compile(regex)
             while True:
                 await asyncio.sleep(self.sleeptime)
                 stat = os.stat(logfile)
-                if mtime < stat.st_mtime:
+                if size > stat.st_size and inode != stat.st_ino:
+                    logger.info("The file {} has rotated. We start from position 0".format(logfile))
+                    size = 0
+                    inode = stat.st_ino
+                if mtime < stat.st_mtime and inode == stat.st_ino:
                     logger.debug("{} has been modified".format(logfile))
                     mtime = stat.st_mtime
                     with open(logfile, "rb") as f:
-                        f.seek(size)
+                        f.seek(size,0)
                         for bline in f.readlines():
                             line = bline.decode().strip()
                             ret = RE.match(line)
@@ -153,7 +157,6 @@ class Vilain():
                                     logger.debug('queue size: {}'.format(self.bad_ip_queue.qsize()))
                                 else:
                                     logger.info('line match {}. But IP in ingore list'.format(bad_ip))
-
                     size = stat.st_size
 
     async def ban_ips(self):
@@ -161,9 +164,8 @@ class Vilain():
         record time when this IP has been seen in ip_seen_at = { ip:{'time':<time>,'count':<counter} }
         and ban with pf
         """
-        logger.info('ban_ips sarted with sleeptime={}'.format(self.sleeptime))
+        logger.info('ban_ips sarted')
         while True:
-            # await asyncio.sleep(self.sleeptime)
             ip_item = await self.bad_ip_queue.get()
             logger.debug('ban_ips awake')
             ip = ip_item['ip']
