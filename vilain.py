@@ -187,7 +187,7 @@ class Vilain():
         """
         logger.info('clean_ips sarted with sleeptime={}'.format(self.sleeptime))
         while True:
-            await asyncio.sleep(self.sleeptime)
+            await asyncio.sleep(self.watch_while)
             to_remove = []
             for recorded_ip, data in self.ip_seen_at.items():
                 if time.time() - data['time'] >= self.watch_while:
