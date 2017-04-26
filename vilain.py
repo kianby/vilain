@@ -156,7 +156,7 @@ class Vilain():
                                     await self.bad_ip_queue.put({'ip' : bad_ip, 'maxtries': maxtries, 'reason' : reason})
                                     logger.debug('queue size: {}'.format(self.bad_ip_queue.qsize()))
                                 else:
-                                    logger.info('line match {}. But IP in ingore list'.format(bad_ip))
+                                    logger.info('line match {}. But IP in ignore list'.format(bad_ip))
                     size = stat.st_size
 
     async def ban_ips(self):
