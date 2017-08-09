@@ -164,7 +164,7 @@ class Vilain():
         record time when this IP has been seen in ip_seen_at = { ip:{'time':<time>,'count':<counter} }
         and ban with pf
         """
-        logger.info('ban_ips sarted')
+        logger.info('ban_ips started')
         while True:
             ip_item = await self.bad_ip_queue.get()
             logger.debug('ban_ips awake')
@@ -185,7 +185,7 @@ class Vilain():
         """
         check old ip in ip_seen_at : remove older than watch_while
         """
-        logger.info('clean_ips sarted with sleeptime={}'.format(self.sleeptime))
+        logger.info('clean_ips started with sleeptime={}'.format(self.sleeptime))
         while True:
             await asyncio.sleep(self.watch_while)
             to_remove = []
