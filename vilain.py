@@ -24,6 +24,7 @@ import os
 import configparser
 import re
 import logging
+import logging.handlers
 import subprocess
 import asyncio
 import time
@@ -38,10 +39,13 @@ if os.geteuid() != 0:
     sys.exit(1)
 
 # Configure logging
+log_handler = logging.handlers.WatchedFileHandler(LOGFILE)
+formatter = logging.Formatter(
+        '%(asctime)s %(module)s:%(funcName)s:%(message)s',
+        '%b %d %H:%M:%S')
+log_handler.setFormatter(formatter)
 logger = logging.getLogger(__name__)
-logging.basicConfig(filename=LOGFILE,
-                    format='%(asctime)s %(module)s:%(funcName)s:%(message)s',
-                    datefmt='%H:%M:%S')
+logger.addHandler(log_handler)
 logger.setLevel(logging.INFO)
 
 # functions
