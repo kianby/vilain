@@ -2,14 +2,14 @@
 # See LICENSE file for copyright and license details.
 #
 # vilain version
-VERSION = 0.3
+VERSION = 0.6
 
 # Customize below to fit your system
 # paths
 PREFIX = /usr/local
 MANPREFIX = ${PREFIX}/man/man1/
 
-install: 
+install:
 	@echo installing executable file to ${DESTDIR}${PREFIX}/bin
 	@mkdir -p ${DESTDIR}${PREFIX}/bin
 	@cp -f vilain ${DESTDIR}${PREFIX}/bin
@@ -33,4 +33,4 @@ uninstall:
 	@echo removing manual page to ${DESTDIR}${MANPREFIX}/
 	@rm -f ${DESTDIR}${MANPREFIX}/vilain.1
 
-.PHONY: install uninstall 
+.PHONY: install uninstall

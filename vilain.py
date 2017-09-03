@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-# -*- coding:Utf-8 -*- 
+# -*- coding:Utf-8 -*-
 
 
 """
-Author :      thuban <thuban@yeuxdelibad.net>  
+Author :      thuban <thuban@yeuxdelibad.net>
               Vincent <vincent.delft@gmail.com>
 Licence :     MIT
 Require : python >= 3.5
@@ -11,11 +11,11 @@ Require : python >= 3.5
 Description : Mimic fail2ban with pf for OpenBSD.
               Inspired from http://www.vincentdelft.be/post/post_20161106
 
-              In pf.conf, add : 
+              In pf.conf, add :
                     table <vilain_bruteforce> persist
-                    block quick from <vilain_bruteforce> 
+                    block quick from <vilain_bruteforce>
 
-              To see banned IP : 
+              To see banned IP :
                     pfctl -t vilain_bruteforce -T show
 """
 
@@ -30,7 +30,7 @@ import asyncio
 import time
 
 CONFIGFILE = "/etc/vilain.conf"
-VERSION = "0.5"
+VERSION = "0.6"
 vilain_table = "vilain_bruteforce"
 LOGFILE = "/var/log/daemon"
 
@@ -38,15 +38,19 @@ if os.geteuid() != 0:
     print("Only root can use this tool")
     sys.exit(1)
 
-# Configure logging
-log_handler = logging.handlers.WatchedFileHandler(LOGFILE)
-formatter = logging.Formatter(
-        '%(asctime)s %(module)s:%(funcName)s:%(message)s',
-        '%b %d %H:%M:%S')
-log_handler.setFormatter(formatter)
+# declare logger
 logger = logging.getLogger(__name__)
-logger.addHandler(log_handler)
-logger.setLevel(logging.INFO)
+
+def configure_logging():
+    print('Log file : {}'.format(LOGFILE))
+    log_handler = logging.handlers.WatchedFileHandler(LOGFILE)
+    formatter = logging.Formatter(
+            '%(asctime)s %(module)s:%(funcName)s:%(message)s',
+            '%b %d %H:%M:%S')
+    log_handler.setFormatter(formatter)
+    logger.addHandler(log_handler)
+    logger.setLevel(logging.INFO)
+
 
 # functions
 def readconfig():
@@ -57,11 +61,9 @@ def readconfig():
 
     config = configparser.ConfigParser()
     config.read(CONFIGFILE)
-    return(config)
+    return (config, config.defaults())
 
-def load_config():
-    c = readconfig()
-    d = c.defaults()
+def load_config(c, d):
     watch_while = int(d['watch_while'])
     VILAIN_TABLE = d['vilain_table']
     default_maxtries = int(d['maxtries'])
@@ -72,8 +74,7 @@ def load_config():
         ignoreips = [ i[1] for i in c.items('ignoreip') if i[0] not in c.defaults()]
     return(watch_while, default_maxtries, vilain_table, ignoreips, sleeptime)
 
-def load_sections():
-    c = readconfig()
+def load_sections(c):
     for s in c.sections():
         if c.has_option(s,'logfile'):
             LOGFILE = c.get(s,'logfile')
@@ -87,15 +88,15 @@ def load_sections():
             yield d
 
 class Vilain():
-    def __init__(self):
+    def __init__(self, config, config_dict):
         logger.info('Start vilain version {}'.format(VERSION))
         self.loop = asyncio.get_event_loop()
-        self.watch_while, self.default_maxtries, self.vilain_table, self.ignore_ips, self.sleeptime = load_config()
+        self.watch_while, self.default_maxtries, self.vilain_table, self.ignore_ips, self.sleeptime = load_config(config, config_dict)
         self.ip_seen_at = {}
         self.load_bad_ips()
         self.bad_ip_queue = asyncio.Queue(loop=self.loop)
 
-        for entry in load_sections():
+        for entry in load_sections(config):
             logger.info("Start vilain for {}".format(entry))
             asyncio.ensure_future(self.check_logs(entry['logfile'], entry['maxtries'], entry['regex'], entry['name']))
 
@@ -111,7 +112,7 @@ class Vilain():
         for res in ret.split():
             ip = res.strip().decode('utf-8')
             logger.info('Add existing banned IPs in your pf table: {}'.format(ip))
-            #we assign the counter to 1, but for sure we don't know the real value 
+            #we assign the counter to 1, but for sure we don't know the real value
             self.ip_seen_at[ip]={'time':time.time(),'count':1}
 
 
@@ -206,9 +207,9 @@ class Vilain():
 
 
 
-def main():
+def main(config, config_dict):
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    v = Vilain()
+    v = Vilain(config, config_dict)
     v.start()
     return 0
 
@@ -229,11 +230,16 @@ if __name__ == '__main__':
     if args.version:
         print("Version: ", VERSION)
         sys.exit(0)
-    main()
+    # read config
+    config, config_dict = readconfig()
+    logfile = config_dict.get('vilain_log', None)
+    if logfile:
+        LOGFILE = logfile
+    configure_logging()
+    main(config, config_dict)
 
 
 # vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 
 
 # vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
-
