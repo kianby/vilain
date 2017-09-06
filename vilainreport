@@ -1,0 +1,11 @@
+#!/bin/sh
+# script to launch vilainreport with the latest python3 version available
+
+PYTHONVERSION=$(ls -l /usr/local/bin/python3.* |grep -Eo "3\.[0-9]" |tail -n1)
+PYTHON="/usr/local/bin/python$PYTHONVERSION"
+if [ -x $PYTHON ]; then
+	$PYTHON /usr/local/sbin/vilainreport.py
+else
+	echo "Error : no python3 executable found"
+fi
+exit
