@@ -1,5 +1,5 @@
 #!/bin/sh
-# script to launch vilain with the latest python3 version avaiable
+# script to launch vilain with the latest python3 version available
 
 PYTHONVERSION=$(ls -l /usr/local/bin/python3.* |grep -Eo "3\.[0-9]" |tail -n1)
 PYTHON="/usr/local/bin/python$PYTHONVERSION"

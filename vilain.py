@@ -30,7 +30,7 @@ import asyncio
 import time
 
 CONFIGFILE = "/etc/vilain.conf"
-VERSION = "0.6"
+VERSION = "0.7"
 vilain_table = "vilain_bruteforce"
 LOGFILE = "/var/log/daemon"
 
@@ -46,7 +46,7 @@ def configure_logging():
     log_handler = logging.handlers.WatchedFileHandler(LOGFILE)
     formatter = logging.Formatter(
             '%(asctime)s %(module)s:%(funcName)s:%(message)s',
-            '%b %d %H:%M:%S')
+            '%Y-%m-%d %H:%M:%S')
     log_handler.setFormatter(formatter)
     logger.addHandler(log_handler)
     logger.setLevel(logging.INFO)
@@ -182,7 +182,7 @@ class Vilain():
             logger.info("{} detected, reason {}, count: {}, maxtries: {}".format(ip, reason, n_ip, maxtries))
             if n_ip >= maxtries:
                 ret = subprocess.call(["pfctl", "-t", self.vilain_table, "-T", "add", ip])
-                logger.info("Blacklisting {}, return code:{}".format(ip, ret))
+                logger.info("Blacklisting {}, reason {}, return code:{}".format(ip, reason, ret))
             #for debugging, this line allow us to see if the script run until here
             logger.debug('ban_ips end:{}'.format(self.ip_seen_at))
 
