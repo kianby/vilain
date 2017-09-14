@@ -9,14 +9,14 @@ regex="^IP ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)[ ]*: ([0-9]+)"
 
 file=${1--} # POSIX-compliant; ${1:--} can be used either.
 while IFS= read -r line; do
-   #echo $line
-   if [[ $line = *@^IP*([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)*:*([0-9]+) ]];
-   then
-     ip="${BASH_REMATCH[1]}"
-     count="${BASH_REMATCH[2]}"
+
+   if [[ "$line" =~ "^IP " ]]; then
+     ipend="${line##+(IP )}"
+     ip="${ipend%%+(+(\s):\s+(\d))}"
+     count="${ipend##+(*:\s)}"
      if [ "$count" -gt "2" ]; then
        echo "ban supervilain ${ip} (${count})"
-       #`pfctl -t supervilain  -T add ${ip}`
+       `pfctl -t supervilain  -T add ${ip}`
      fi
    fi
 done <"$file"
