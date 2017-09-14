@@ -5,12 +5,10 @@ if [ $# != 1 ]; then
    exit 1
 fi
 
-regex="^IP ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)[ ]*: ([0-9]+)"
-
 file=${1--} # POSIX-compliant; ${1:--} can be used either.
 while IFS= read -r line; do
 
-   if [[ "$line" =~ "^IP " ]]; then
+   if [[ ${line} =~ ^IP ]]; then
      ipend="${line##+(IP )}"
      ip="${ipend%%+(+(\s):\s+(\d))}"
      count="${ipend##+(*:\s)}"
