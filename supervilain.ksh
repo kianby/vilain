@@ -13,7 +13,7 @@ do
     ipend="${line##+(IP )}"
     ip="${ipend%%+( ):*}"
     count="${ipend##*\: }"
-    if [ "$count" -gt "3" ]; then
+    if [ "$count" -gt "2" ]; then
       echo "Ban supervilain ${ip} (${count})"
       `pfctl -t supervilain  -T add ${ip}`
     fi
